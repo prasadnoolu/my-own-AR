@@ -1,0 +1,210 @@
+#include <ESP8266WiFi.h>                            //Include the library for WiFI Initialization                                                  
+
+#include <PubSubClient.h>                           //Include the library for MQTT pubsub protocol
+
+
+//WIFI setup
+
+
+const char* ssid = "GPONWIFI_8168";//put your wifi network name here
+const char* password = "00000018C3";//put your wifi password here
+
+//The broker or server domain name
+
+const char* mqtt_server = "broker.hivemq.com";
+
+
+// Create an ESP8266 WiFiClient class to connect to the MQTT server.
+
+WiFiClient espClient;
+
+//create the MQTT client objects                
+
+PubSubClient client(espClient);                   
+
+
+void setup() {
+
+  pinMode(LED_BUILTIN,OUTPUT);                                  //configure the led pin as OUTPUT
+
+  Serial.begin(9600);                               //Set the baudrate of ESP8266 to show the process on serial monitor
+
+  setup_wifi();                                       //Initialize the Wifi
+
+  
+
+  //By setting server and messgae callback function, the client is ready to use 
+
+  //& 1883 is the listener port for the broker
+
+  client.setServer(mqtt_server, 1883);
+
+  client.setCallback(Received_Message);
+
+}
+
+
+/*
+
+* Function Name = setup_wifi
+
+* To establish the WIFI connection with ESP8266
+
+*/
+
+void setup_wifi(){
+
+
+  delay(10);
+
+  // We start by connecting to a WiFi network
+
+  Serial.println();
+
+  Serial.print("Connecting to ");
+
+  Serial.println(ssid);
+
+  //Connect to the WIFI
+
+  WiFi.begin(ssid, password);
+
+  // Wait until the connection has been confirmed before continuing
+
+  while (WiFi.status() != WL_CONNECTED) {
+
+    delay(500);
+
+    Serial.print(".");
+
+  }
+
+
+  Serial.println("");
+
+  Serial.println("WiFi connected");
+
+  Serial.println("IP address: ");
+
+  Serial.println(WiFi.localIP());
+
+}
+
+
+/*
+
+* Function name = Received_message
+
+* Client receives the message and functions accordingly
+
+* Input parameter = Topic, Payload and message length
+
+* Output parameter = void
+
+*/
+
+void Received_Message(char* topic, byte* payload, unsigned int length) {
+
+  Serial.print("Message arrived [");
+
+  Serial.print(topic);
+
+  Serial.print("] ");
+
+  for (int i = 0; i < length; i++) {
+
+    Serial.print((char)payload[i]);
+
+  }
+
+  
+
+     // Handle the message we received
+
+    // Here, we are only looking at the characters of the received message
+
+    // If it is on, turn the led will be on.
+
+    // If it is off, turn the led will be off.
+
+   if((char)payload[0] == '1' && (char)payload[1] == '1') //on
+
+    digitalWrite(LED_BUILTIN,HIGH);
+
+  else if((char)payload[0] == '1' && (char)payload[1] == '0') //off
+
+    digitalWrite(LED_BUILTIN,LOW);
+
+    
+
+  Serial.println();
+
+}
+
+
+/*
+
+* Function Name = Reconnect
+
+* To establish the connection of ESP8266 with MQTT broker 
+
+* and Will publish and subsribe to the topic
+
+*/
+
+void reconnect() {
+
+  // Loop until we're reconnected
+
+  while (!client.connected()) {
+
+    Serial.print("Attempting MQTT connection...");
+
+    // Attempt to connect
+
+    if (client.connect("ESP8266Client")) {
+
+      Serial.println("connected");
+
+      // Once connected, publish an announcement...
+
+     // client.publish("ESP8266/connection status", "Connected!");
+
+      // ... and resubscribe
+
+      client.subscribe("/prasad_Device");
+
+    } else {
+
+      Serial.print("failed, rc=");
+
+      Serial.print(client.state());
+
+      Serial.println(" try again in 5 seconds");
+
+      // Wait 5 seconds before retrying
+
+      delay(5000);
+
+    }
+
+  }
+
+}
+
+
+void loop() {
+
+  //When ESP8266 client will be connected to the broker, 
+
+  //then call the function reconnect and publish and subscribe the data from broker.
+
+  if (!client.connected()) {
+
+    reconnect();
+
+  }
+
+  client.loop();
+
+}
