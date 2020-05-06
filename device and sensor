@@ -1,0 +1,140 @@
+#include <ESP8266WiFi.h>
+#include <WiFiClient.h>
+#include <PubSubClient.h>
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
+#define DHTPIN D4  //D4   
+#define DHTTYPE    DHT11    
+const char* ssid = "xxxxxxxxxxxxxxxx";//put your wifi network name here
+const char* password = "xxxxxxxxxxxxx";//put your wifi password here
+const char* mqtt_server = "broker.hivemq.com";
+WiFiClient espClient;
+PubSubClient client(espClient);
+float t = 0.0;
+float h = 0.0;
+DHT dht(DHTPIN, DHTTYPE);
+void setup() {
+  pinMode(16, OUTPUT); //D0
+  pinMode(5, OUTPUT);  //D1
+  pinMode(4, OUTPUT);  //D2
+  pinMode(0, OUTPUT);  //D3
+  Serial.begin(9600);
+  setup_wifi();
+  client.setServer(mqtt_server, 1883);
+  client.setCallback(Received_Message);
+  dht.begin();
+}
+
+
+void setup_wifi()
+{
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+    Serial.print(".");
+
+  }
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+
+}
+
+
+
+void Received_Message(char* topic, byte* payload, unsigned int length) 
+{
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+  for (int i = 0; i < length; i++) 
+  {
+    Serial.print((char)payload[i]);
+  }
+  if ((char)payload[0] == '1' && (char)payload[1] == '1') //on
+  digitalWrite(LED_BUILTIN, HIGH);
+  else if ((char)payload[0] == '1' && (char)payload[1] == '0') //off
+  digitalWrite(LED_BUILTIN, LOW);
+  Serial.println();
+
+}
+
+
+
+void reconnect() {
+
+
+  while (!client.connected()) {
+
+    Serial.print("Attempting MQTT connection...");
+
+    if (client.connect("ESP8266Client")) {
+
+      Serial.println("connected");
+
+      client.subscribe("/prasad_Device");
+
+    } else {
+
+      Serial.print("failed, rc=");
+
+      Serial.print(client.state());
+
+      Serial.println(" try again in 5 seconds");
+
+      delay(5000);
+
+    }
+
+  }
+
+}
+
+
+void loop() {
+
+
+  if (!client.connected()) {
+
+    reconnect();
+
+  }
+
+  client.loop();
+
+  float newT = dht.readTemperature(true);
+    if (isnan(newT)) {
+      Serial.println("Failed to read from DHT sensor!");
+    }
+    else {
+      t = newT;
+      Serial.print("T:");
+      Serial.println(t);
+    }
+    // Read Humidity
+    float newH = dht.readHumidity();
+  
+    if (isnan(newH)) {
+      Serial.println("Failed to read from DHT sensor!");
+    }
+    else {
+      h = newH;
+      Serial.print("H:");
+      Serial.println(h);
+    }
+    String msg="{\"temperature\":";
+     msg= msg+ t;
+     msg = msg+",\"humidity\":" ;
+     msg=msg+h ;
+     msg=msg+"}";
+     char message[58];
+     msg.toCharArray(message,58);
+    client.publish("/AHXPD/arduino", message); 
+
+    delay(10000);
+
+}
