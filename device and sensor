@@ -5,8 +5,8 @@
 #include <DHT.h>
 #define DHTPIN D4  //D4   
 #define DHTTYPE    DHT11    
-const char* ssid = "xxxxxxxxxxxxxxxx";//put your wifi network name here
-const char* password = "xxxxxxxxxxxxx";//put your wifi password here
+const char* ssid = "Prasad wifi";//put your wifi network name here
+const char* password = "Mouni@Dhanvi";//put your wifi password here
 const char* mqtt_server = "broker.hivemq.com";
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -14,10 +14,8 @@ float t = 0.0;
 float h = 0.0;
 DHT dht(DHTPIN, DHTTYPE);
 void setup() {
-  pinMode(16, OUTPUT); //D0
-  pinMode(5, OUTPUT);  //D1
-  pinMode(4, OUTPUT);  //D2
-  pinMode(0, OUTPUT);  //D3
+
+  pinMode(16, OUTPUT);  //D3
   Serial.begin(9600);
   setup_wifi();
   client.setServer(mqtt_server, 1883);
@@ -56,10 +54,41 @@ void Received_Message(char* topic, byte* payload, unsigned int length)
     Serial.print((char)payload[i]);
   }
   if ((char)payload[0] == '1' && (char)payload[1] == '1') //on
-  digitalWrite(LED_BUILTIN, HIGH);
+  digitalWrite(16, HIGH);
   else if ((char)payload[0] == '1' && (char)payload[1] == '0') //off
-  digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(16, LOW);
   Serial.println();
+  
+  float newT = dht.readTemperature(true);
+    if (isnan(newT)) {
+      Serial.println("Failed to read from DHT sensor!");
+    }
+    else {
+      t = newT;
+      Serial.print("T:");
+      Serial.println(t-50);
+    }
+    // Read Humidity
+    float newH = dht.readHumidity();
+  
+    if (isnan(newH)) {
+      Serial.println("Failed to read from DHT sensor!");
+    }
+    else {
+      h = newH-45;
+      Serial.print("H:");
+      Serial.println(h-45);
+    }
+    String msg="{\"temperature\":";
+     msg= msg+ t;
+     msg = msg+",\"humidity\":" ;
+     msg=msg+h ;
+     msg=msg+"}";
+     char message[58];
+     msg.toCharArray(message,58);
+    client.publish("/dattath", message); 
+
+   
 
 }
 
@@ -76,7 +105,7 @@ void reconnect() {
 
       Serial.println("connected");
 
-      client.subscribe("/prasad_Device");
+      client.subscribe("/dattaha");
 
     } else {
 
@@ -106,35 +135,5 @@ void loop() {
 
   client.loop();
 
-  float newT = dht.readTemperature(true);
-    if (isnan(newT)) {
-      Serial.println("Failed to read from DHT sensor!");
-    }
-    else {
-      t = newT;
-      Serial.print("T:");
-      Serial.println(t);
-    }
-    // Read Humidity
-    float newH = dht.readHumidity();
-  
-    if (isnan(newH)) {
-      Serial.println("Failed to read from DHT sensor!");
-    }
-    else {
-      h = newH;
-      Serial.print("H:");
-      Serial.println(h);
-    }
-    String msg="{\"temperature\":";
-     msg= msg+ t;
-     msg = msg+",\"humidity\":" ;
-     msg=msg+h ;
-     msg=msg+"}";
-     char message[58];
-     msg.toCharArray(message,58);
-    client.publish("/AHXPD/arduino", message); 
-
-    delay(10000);
 
 }
