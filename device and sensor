@@ -5,8 +5,8 @@
 #include <DHT.h>
 #define DHTPIN D4  //D4   
 #define DHTTYPE    DHT11    
-const char* ssid = "Prasad wifi";//put your wifi network name here
-const char* password = "Mouni@Dhanvi";//put your wifi password here
+const char* ssid = "xxxxxxxxxxxxx";//put your wifi network name here
+const char* password = "xxxxxxxxxxx";//put your wifi password here
 const char* mqtt_server = "broker.hivemq.com";
 WiFiClient espClient;
 PubSubClient client(espClient);
